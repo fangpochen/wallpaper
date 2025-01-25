@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "壁纸图片",
+  "enablePullDownRefresh": false,
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "home-banner": "/pages/client/components/home/banner",
+    "pop": "/components/ming-pop/ming-pop"
+  }
+}

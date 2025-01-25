@@ -220,154 +220,93 @@
 		    }
 		},
 		methods:{
-			getList(lx,ishot) {
-				let this_=this
-				let data = {};
-				var limit=15;
-				if(lx){
-					data.limit=4
-					data.lx=lx
-					if(lx==5){
-						data.limit=30	
-						data.lx=4
-					}
-				}else{
-					data.limit=limit
-				}
-				if(ishot>0){
-					data.ishot=ishot
-				}
-				if(this.type4id){
-					data.typeid=this.type4id
-				}
-				uni.request({
-					url: this.configs.webUrl+'/api/video/lists',
-					data: data,
-					success: data => {
-						//console.log(data.data)
-						uni.setStorage({//缓存配置信息
-							key: 'config',  
-							data: data.data.config
-						})
-						this.banners=data.data.config.banner
-						if(data.data.config.name){
-							uni.setNavigationBarTitle({
-							    title: data.data.config.name
-							});
+			async getList(lx, ishot) {
+				try {
+					const { result } = await wx.cloud.callFunction({
+						name: 'wallpaper',
+						data: {
+							action: 'getWallpapers',
+							data: {
+								type: lx,
+								page: 1,
+								limit: ishot ? 4 : 15
+							}
 						}
-						//广告开始
-						// #ifdef MP-WEIXIN
-						if(data.data.config.site.weixinxcx.BannerAd){
-							this.BannerAd=data.data.config.site.weixinxcx.BannerAd
-						}
-						if(data.data.config.site.weixinxcx.tanchuAd){
-							this.tanchuAd=data.data.config.site.weixinxcx.tanchuAd
-						}
-						if(this.tanchuAd){
-							this.interstitialAd=wx.createInterstitialAd({
-							    adUnitId: this.tanchuAd
+					})
+					
+					if (result.code === 0) {
+						const { list } = result.data
+						// 处理图片URL
+						const processedList = await Promise.all(list.map(async item => {
+							// 获取临时文件URL
+							const { fileList } = await wx.cloud.getTempFileURL({
+								fileList: [item.fileID]
 							})
-							this.interstitialAd.show().catch((err) => {
-							    console.error(err)
-							})
-						}
-						// #endif
-						// #ifndef MP-WEIXIN
-						if(data.data.config.site.appapi.xxladpid){
-							this.xxladpid=data.data.config.site.appapi.xxladpid
-							console.log(this.xxladpid)
-						}
-						// #endif
-						//广告结束
+							return {
+								id: item._id,
+								img: fileList[0].tempFileURL,
+								lx: item.type,
+								title: item.title
+							}
+						}))
 						
-						if(data.data.config.mbgColor){
-							this.mbgColor=data.data.config.mbgColor
-							uni.setNavigationBarColor({
-								frontColor:"#ffffff",
-								backgroundColor:this_.mbgColor,
-								complete:()=>{
-									this.navLock = false;
-								}
-							});
+						if (lx === 4) {
+							this.dataindex[4] = processedList
 						}
-						this.type4tab=data.data.typedata.type4
-						console.log(this.type4tab)
-						if (data.data.total>0) {
-							this.dataconfig=data.data.config
-							if(lx){
-								this.dataindex[lx]=data.data.rows
-							}else{
-								this.datasa=data.data.rows
-							}
-						}
-					},
-					fail: (data, code) => {
 					}
-				});
+				} catch (err) {
+					console.error('获取壁纸列表失败:', err)
+				}
 			},
-			getList1() {
-				// #ifdef MP-WEIXIN
-				console.log(this.last_id)
-				if(this.last_id>0 && this.last_id%5==0){
-					if(this.tanchuAd && this.interstitialAd){
-						this.interstitialAd.show().catch((err) => {
-						    console.error(err)
-						})
-					}
-				}
-				// #endif
-				var lx=4
-				let this_=this
-				let data = {};
-				var limit=15;
-				if (this.last_id>0) {//说明已有数据，目前处于上拉加载
-					this.status = 'loading';
-					data.offset = this.last_id*limit;
-					data._ = new Date().getTime() + '';
-				}
-				data.limit=limit
-				data.lx=lx
-				if(this.type4id){
-					data.typeid=this.type4id
-				}
-				uni.request({
-					url: this.configs.webUrl+'/api/video/lists',
-					data: data,
-					success: data => {
-						uni.stopPullDownRefresh();
-						setTimeout(function() {
-						    uni.hideLoading();  
-						},150)
-						//console.log(data.data)
-						uni.setStorage({//缓存配置信息
-							key: 'config',  
-							data: data.data.config
-						})
-						this.banners=data.data.config.banner
-						this.type4tab=data.data.typedata.type4
-						//console.log(this.type4tab)
-						if (data.data.total>0) {
-							let list = data.data.rows;
-							this.listData = this.reload ? list : this.listData.concat(list);
-							this.reload = false;
-							this.last_id = this.last_id+1;
-							if(data.data.total<this.last_id*limit){
-								this.status = '';
+			
+			async getList1() {
+				try {
+					const { result } = await wx.cloud.callFunction({
+						name: 'wallpaper',
+						data: {
+							action: 'getWallpapers',
+							data: {
+								type: 4,
+								page: this.last_id + 1,
+								limit: 15
 							}
-						}else{
-							this.listData=[];
-							this.contentText.contentdown='没有数据'
-							this.status=''
-							
 						}
-					},
-					fail: (data, code) => {
-						uni.stopPullDownRefresh();
-						setTimeout(function() {
-						    uni.hideLoading();  
-						},150)
+					})
+					
+					if (result.code === 0) {
+						const { list, total } = result.data
+						
+						// 处理图片URL
+						const processedList = await Promise.all(list.map(async item => {
+							const { fileList } = await wx.cloud.getTempFileURL({
+								fileList: [item.fileID]
+							})
+							return {
+								id: item._id,
+								img: fileList[0].tempFileURL,
+								lx: item.type,
+								title: item.title
+							}
+						}))
+						
+						if (total > 0) {
+							this.listData = this.reload ? processedList : this.listData.concat(processedList)
+							this.reload = false
+							this.last_id = this.last_id + 1
+							if (total < this.last_id * 15) {
+								this.status = ''
+							}
+						} else {
+							this.listData = []
+							this.contentText.contentdown = '没有数据'
+							this.status = ''
+						}
 					}
-				});
+				} catch (err) {
+					console.error('获取壁纸列表失败:', err)
+					uni.stopPullDownRefresh()
+					uni.hideLoading()
+				}
 			},
 			changetype4(index){
 				this.selecttype4 = index;

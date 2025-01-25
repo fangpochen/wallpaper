@@ -407,6 +407,12 @@
 			"style": {
 				"navigationBarTitleText": "用户协议"
 			}
+		},
+		{
+			"path": "pages/client/upload/upload",
+			"style": {
+				"navigationBarTitleText": "上传壁纸"
+			}
 		}
 		
         

@@ -118,15 +118,21 @@
 					{name:'收货地址',type:'link',model:'',link:'/pages/client/member/address',icon:this.$config.staticUrl + 'vipcard_icon_my_address@2x.png',show:0},
 					{name:'官方商城',type:'link',model:'',link:'/pages/client/shop',icon:this.$config.staticUrl + 'vipcard_icon_my_integral@2x.png',show:0},
 					{name:'我的邀请',type:'link',model:'',link:'/pages/client/mytuandui',icon:this.$config.staticUrl + 'vipcard_icon_my_invite@2x.png',show:1},
-					{name:'我要投稿',type:'link',model:'',link:'/pages/client/member/tougao',icon:this.$config.staticUrl + 'vipcard_icon_my_advise@2x.png',show:0},
-					{name:'专属顾问',type:'link',model:'',link:'/pages/client/vipcard/adviser',icon:this.$config.staticUrl + 'vipcard_icon_my_advise@2x.png',show:1},
+					{name:'上传壁纸',type:'link',model:'',link:'/pages/client/upload/upload',icon:this.$config.staticUrl + 'vipcard_icon_my_advise@2x.png',show:0},
+					{name:'专属顾问',type:'link',model:'',link:'/pages/client/vipcard/adviser',icon:this.$config.staticUrl + 'vipcard_icon_my_advise@2x.png',show:1}
 				],
 			}
 		},
 		computed:{
 			getMenus(){
 				let arr = new Array;
-				for(var a  in this.memberMenus){
+				for(var a in this.memberMenus){
+					if(this.memberMenus[a].name === '上传壁纸') {
+						if(this.userinfo && this.userinfo.user_id === 1) {
+							arr.push(this.memberMenus[a]);
+						}
+						continue;
+					}
 					if(this.memberMenus[a].show == 1){
 						arr.push(this.memberMenus[a]);
 					}

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "去水印工具",
+  "navigationBarBackgroundColor": "#FFFFFF",
+  "usingComponents": {
+    "home-banner": "/pages/client/components/home/banner"
+  }
+}

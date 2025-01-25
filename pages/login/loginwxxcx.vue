@@ -27,7 +27,8 @@
 	<!-- #endif -->
 	<!-- #ifdef MP-WEIXIN -->
 	<view style="margin-top: 50px;">
-		<button class="button-login1" v-if="dltel==1" open-type="getPhoneNumber" style="font-size: 26upx; color: #ffffff;" @getphonenumber="onGetPhoneNumber">登录</button>
+		<button class="button-login1" v-if="!userinfowx" open-type="getUserInfo" @getuserinfo="getUserInfo" style="font-size: 26upx; color: #ffffff;">微信授权登录</button>
+		<button class="button-login1" v-else-if="dltel==1" open-type="getPhoneNumber" style="font-size: 26upx; color: #ffffff;" @getphonenumber="onGetPhoneNumber">手机号授权</button>
 		<button class="button-login1" v-else @click="Loginops()" style="font-size: 26upx; color: #ffffff;">登录</button>
 	</view>
 	<!-- #endif -->
@@ -41,7 +42,7 @@
         mobile: '',
         password: '',
 		openid:'',
-		userinfowx:'',
+		userinfowx: null,
 		fxpid:'',
 		dltel:'',
       };
@@ -171,100 +172,138 @@
         }
 
       },
-	  getuserinfo: function(){
-		var this_=this
-	  	// wx登录
-	  	wx.login({
-	  	  success (res) {
-	  	    if (res.code) {
-	  	      //发起网络请求
-	  		  var code = res.code
-	  		  	// 获取微信用户信息
-	  			wx.getUserInfo({
-	  			  success: function(res) {
-					this_.userinfowx=res.userInfo
-					this_.wxlogin()
-	  			  },
-	  			  fail:res=>{
-	  			      // 获取失败的去引导用户授权 
-	  			   }
-	  			})
-	  			
-	  	    } else {
-	  			
-	  	    }
-	  	  }
-	  	})
+	  getUserInfo(e) {
+		console.log('getUserInfo response:', e);  // 添加日志
+		if (e.detail.userInfo) {
+			uni.showLoading({
+				title: '正在登录...'
+			});
+			this.userinfowx = e.detail.userInfo;
+			uni.setStorageSync('userinfowx', e.detail.userInfo);  // 立即保存用户信息
+			this.wxlogin();
+		} else {
+			uni.showToast({
+				title: '请授权用户信息',
+				icon: 'none',
+				duration: 2000
+			});
+		}
 	  },
-	  wxlogin(){
-		  var userinfowx=this.userinfowx
-		  var this_=this
-		  uni.login({
-		       timeout: 10000,
-		        provider: 'weixin',  //如果是uniapp，在这里需要标明平台的类型，支持的参数请查阅uniapp官网的uni.login()文档
-		        success: (res) => {
-					//console.log(res);
-		  			//登陆成功的回调
-					uni.request({
-					      url: this.configs.webUrl+'/api/user/getOpenid',  
-					      method:'GET',  
-					      data: {   
-					          //token: uni.getStorageSync("userinfo").token,       //你的小程序的secret,  
-					          code: res.code                        //wx.login 登录成功后的code  
-					      },  
-					      success: (cts) => {  
-							  if(cts.data.code==1){
-								  this_.openid=cts.data.data
-								  uni.showModal({
-								  	title: '温馨提示',
-								  	content: '授权成功',
-								  	showCancel: false,
-								  	confirmText: "确定",
-								  	success: function (res) {
-										if (res.confirm) {
-											this_.opsdd()
-										} else if (res.cancel) {
-											
-										}
-										
-								  	}
-								  });
-							  }else{
-								  uni.showModal({
-								  	title: '温馨提示',
-								  	content: JSON.stringify(cts.data),
-								  	showCancel: false,
-								  	confirmText: "确定",
-								  	success: function (res) {
-								  		if (res.confirm) {
-								  			//uni.navigateBack();
-								  		} else if (res.cancel) {
-								  			
-								  		}
-								  	}
-								  });
-							  }
-					      },
-						  fail: (err1) => {
-						  	console.log(err1);
-						     	//失败的回调
-						  }
-					});
-		  	  },
-		        fail: (err) => {
-		           	//登陆失败的回调
-		        }
-		  })
+	  wxlogin() {
+		console.log('开始微信登录');
+		console.log('当前后端地址:', this.configs.webUrl);  // 打印当前配置的后端地址
+		
+		// 检查网络状态
+		uni.getNetworkType({
+		  success: (res) => {
+			console.log('网络状态:', res.networkType);
+			if (res.networkType === 'none') {
+			  uni.showToast({
+				title: '请检查网络连接',
+				icon: 'none',
+				duration: 2000
+			  });
+			  return;
+			}
+			
+			this.doLogin();
+		  }
+		});
 	  },
-	  opsdd(){
-		  this.userinfowx.openid=this.openid
-		  uni.setStorage({//缓存配置信息
-		  	key: 'userinfowx',  
-		  	data: this.userinfowx
-		  })
-		  uni.navigateTo({
-		  	url:'/pages/login/loginwxxcx'
-		  })	
+	  doLogin() {
+		uni.showLoading({
+		  title: '登录中...'
+		});
+		
+		uni.login({
+		  provider: 'weixin',
+		  success: (res) => {
+			console.log('uni.login success:', res);
+			if (res.code) {
+			  // 获取openid
+			  this.getOpenId(res.code, 0);  // 添加重试次数参数
+			} else {
+			  uni.hideLoading();
+			  uni.showToast({
+				title: '登录失败，请重试',
+				icon: 'none',
+				duration: 2000
+			  });
+			}
+		  },
+		  fail: (err) => {
+			console.error('uni.login error:', err);
+			uni.hideLoading();
+			uni.showToast({
+			  title: '登录失败，请重试',
+			  icon: 'none',
+			  duration: 2000
+			});
+		  }
+		});
+	  },
+	  getOpenId(code, retryCount) {
+		const maxRetries = 3;  // 最大重试次数
+		
+		uni.request({
+		  url: this.configs.webUrl + '/api/user/getOpenid',
+		  method: 'GET',
+		  data: {
+			code: code
+		  },
+		  success: (cts) => {
+			console.log('getOpenid response:', cts);
+			uni.hideLoading();
+			if (cts.data && cts.data.code == 1) {
+			  this.openid = cts.data.data;
+			  this.opsdd();
+			} else {
+			  if (retryCount < maxRetries) {
+				console.log(`重试获取openid: ${retryCount + 1}/${maxRetries}`);
+				setTimeout(() => {
+				  this.getOpenId(code, retryCount + 1);
+				}, 1000);  // 延迟1秒后重试
+			  } else {
+				uni.showToast({
+				  title: cts.data?.msg || '登录失败',
+				  icon: 'none',
+				  duration: 2000
+				});
+			  }
+			}
+		  },
+		  fail: (err) => {
+			console.error('getOpenid error:', err);
+			uni.hideLoading();
+			
+			if (retryCount < maxRetries) {
+			  console.log(`重试获取openid: ${retryCount + 1}/${maxRetries}`);
+			  setTimeout(() => {
+				this.getOpenId(code, retryCount + 1);
+			  }, 1000);  // 延迟1秒后重试
+			} else {
+			  uni.showToast({
+				title: '网络错误，请检查网络后重试',
+				icon: 'none',
+				duration: 2000
+			  });
+			}
+		  }
+		});
+	  },
+	  opsdd() {
+		if (this.userinfowx) {
+			this.userinfowx.openid = this.openid;
+			uni.setStorage({
+				key: 'userinfowx',
+				data: this.userinfowx
+			});
+			if (this.dltel == 1) {
+				// 如果需要手机号，等待用户点击获取手机号按钮
+				return;
+			}
+			this.Loginops();
+		}
 	  },
 	  Loginops(){
 		uni.request({
@@ -313,7 +352,6 @@
 					  	confirmText: "确定",
 					  	success: function (res) {
 					  		if (res.confirm) {
-					  			//this_.dyxx()
 					  			uni.navigateBack({
 					  				delta: 2
 					  			});

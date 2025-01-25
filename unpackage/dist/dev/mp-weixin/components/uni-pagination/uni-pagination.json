@@ -1,0 +1,7 @@
+{
+  "component": true,
+  "usingComponents": {
+    "uni-icons": "/components/uni-icons1/uni-icons",
+    "h-form-alert": "/components/h-form-alert/h-form-alert"
+  }
+}

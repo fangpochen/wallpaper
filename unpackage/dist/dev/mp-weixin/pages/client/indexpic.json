@@ -1,0 +1,11 @@
+{
+  "enablePullDownRefresh": true,
+  "navigationBarTitleText": "",
+  "navigationBarBackgroundColor": "#363B4D",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "home-banner": "/pages/client/components/home/banner",
+    "sub-tabvsw": "/components/sub/tabvsw",
+    "uni-load-more": "/uni_modules/uni-load-more/components/uni-load-more/uni-load-more"
+  }
+}

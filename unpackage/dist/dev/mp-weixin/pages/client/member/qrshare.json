@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "分享",
+  "usingComponents": {
+    "avatar": "/components/yq-avatar/yq-avatar",
+    "uni-popup": "/components/uni-popup/uni-popup",
+    "share-btn": "/components/share-btn/share-btn"
+  }
+}
